@@ -110,7 +110,7 @@ if __name__ == '__main__':
     left_frame = tk.Frame(window, relief=tk.RAISED, bd=5)
     btn_open = tk.Button(left_frame, text="Choose file", command=open_file)
     text = StringVar()
-    ent_filename = tk.Entry(left_frame, textvariable=text, width=50)
+    ent_filename = tk.Entry(left_frame, textvariable=text, width=62)
     ent_filename.insert(tk.END, os.path.abspath('.'))
     txt_edit = tk.Text(window)
     lbl_errorfield = tk.Label(left_frame, text="If some errors\n .config() this lbl")
