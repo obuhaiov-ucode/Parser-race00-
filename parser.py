@@ -1,4 +1,5 @@
 import os
+import json
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import *
@@ -7,7 +8,7 @@ from tkinter.filedialog import askopenfilename
 def open_file():
     """Открываем файл для редактирования"""
     filepath = askopenfilename(
-        filetypes=[("JSON", "*.json"), ("YAML", "*.yaml")]
+        filetypes=[("JSON", "*.json"), ("YAML", "*.yaml"), ("All", "*")]
     )
     if not filepath:
         return
@@ -16,20 +17,61 @@ def open_file():
         text = input_file.read()
         txt_edit.insert(tk.END, text)
     window.title(f"Parser of - {filepath}")
+    ent_filename.delete(0, 'end')
+    ent_filename.insert(tk.END, filepath)
+
+def insert_all(tree, id_p, node):
+    i = 0
+    for item in node:
+        if isinstance(item, dict) and isinstance(node, list):
+            "List_of_dicts"
+            id = tree.insert(id_p, 'end', text=str(i) + ': {' + str(len(item.values())) + '}')
+            insert_all(tree, id, item)
+        elif not isinstance(item, (dict, list)) and isinstance(node, list):
+            "List"
+            if isinstance(item, str):
+                tree.insert(id_p, 'end', text=f'{str(i)}: "{item}"')
+            else:
+                tree.insert(id_p, 'end', text=f'{str(i)}: {item}')
+        elif isinstance(item, str) and isinstance(node[item], list):
+            "Dict_of_lists"
+            id = tree.insert(id_p, 'end', text=item + ': [' + str(len(node[item])) + ']')
+            insert_all(tree, id, node[item])
+        elif isinstance(item, str) and isinstance(node, dict) \
+                and isinstance(node.get(item), dict):
+            "Dict_of_named_dicts"
+            id = tree.insert(id_p, 'end', text=item + ': {' + str(len(node.get(item))) + '}')
+            insert_all(tree, id, node.get(item))
+        elif isinstance(item, str) and not isinstance(node.get(item), (dict, list)) \
+                and isinstance(node, dict):
+            "Scalar"
+            if isinstance(node.get(item), str):
+                tmp = f'{item}: "{node.get(item)}"'
+            else:
+                tmp = f'{item}: {node.get(item)}'
+            tree.insert(id_p, 'end', text=tmp)
+        else:
+            "Empty_value"
+            if isinstance(item, str):
+                tree.insert(id_p, 'end', text=f'{str(i)}: "{item}"')
+            else:
+                tree.insert(id_p, 'end', text=f'{str(i)}: {item}')
+        i += 1
+    pass
+
 
 def run_treeview():
     lbl_errorfield.config(text="Tree View")
-    valid_data = txt_edit.get(1.0, END)
-    print(valid_data)
+    with open(ent_filename.get(), "r") as input_file:
+        valid_data = json.load(input_file)
 
     tree_window = Tk()
     tree_window.title("Tree View")
-    tree_window.geometry("400x300+300+250")
+    tree_window.geometry("800x235")
+
     tree = ttk.Treeview(tree_window)
-
-    abspath = os.path.abspath(".")
-
-    tree.heading("#0", text=abspath, anchor=tk.W)
+    tree.column("#0", minwidth=0, width=785)
+    tree.heading("#0", text=ent_filename.get(), anchor=tk.W)
     ysb = ttk.Scrollbar(tree_window, orient=tk.VERTICAL,
                         command=tree.yview)
     xsb = ttk.Scrollbar(tree_window, orient=tk.HORIZONTAL,
@@ -41,6 +83,12 @@ def run_treeview():
     xsb.grid(row=1, column=0, sticky=tk.E + tk.W)
     tree.rowconfigure(0, weight=1)
     tree.columnconfigure(0, weight=1)
+
+    if isinstance(valid_data, list):
+        id = tree.insert('', 'end', text='[' + str(len(valid_data)) + ']')
+    else:
+        id = tree.insert('', 'end', text='{' + str(len(valid_data)) + '}')
+    insert_all(tree, id, valid_data)
 
     tree_window.mainloop()
     pass
@@ -61,7 +109,9 @@ if __name__ == '__main__':
 
     left_frame = tk.Frame(window, relief=tk.RAISED, bd=5)
     btn_open = tk.Button(left_frame, text="Choose file", command=open_file)
-    ent_filename = tk.Entry(left_frame)
+    text = StringVar()
+    ent_filename = tk.Entry(left_frame, textvariable=text, width=50)
+    ent_filename.insert(tk.END, os.path.abspath('.'))
     txt_edit = tk.Text(window)
     lbl_errorfield = tk.Label(left_frame, text="If some errors\n .config() this lbl")
 
